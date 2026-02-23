@@ -164,7 +164,7 @@ static void print_welcome_message(void) {
 
 int main(void) {
     stdio_init_all();
-    sleep_ms(2000);
+    // sleep_ms(2000);
 
     print_welcome_message();
 
