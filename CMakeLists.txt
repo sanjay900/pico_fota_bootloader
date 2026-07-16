@@ -99,8 +99,9 @@ target_link_libraries(pico_fota_bootloader_lib PUBLIC
                       hardware_flash)
 target_link_libraries(pico_fota_bootloader_lib PRIVATE
                       pico_mbedtls)
+target_link_directories(pico_fota_bootloader_lib PUBLIC "${CMAKE_BINARY_DIR}")
 target_link_options(pico_fota_bootloader_lib PRIVATE
-                    "-T${CMAKE_CURRENT_BINARY_DIR}/linker_definitions.ld")
+                    "-T${CMAKE_BINARY_DIR}/linker_definitions.ld")
 target_compile_options(pico_fota_bootloader_lib PRIVATE
                        -Wall
                        -Wextra
