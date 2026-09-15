@@ -50,6 +50,9 @@ endif()
 if ( NOT PFB_RESERVED_FILESYSTEM_SIZE_KB )
     set(PFB_RESERVED_FILESYSTEM_SIZE_KB 0 CACHE STRING "EXPERIMENTAL: Size in KB reserved for the filesystem")
 endif()
+if ( NOT DEFINED PFB_STATIC_FIRMWARE_SIZE_KB )
+    set(PFB_STATIC_FIRMWARE_SIZE_KB 0 CACHE STRING "Size in KB reserved for static firmware")
+endif()
 
 ########################################
 # Build linker definitions
