@@ -125,6 +125,7 @@ set(BOOTLOADER_DIR_GLOBAL ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 function(pfb_compile_with_bootloader Target)
     target_link_options(${Target} PRIVATE "-L${BOOTLOADER_DIR_GLOBAL}/linker_common" "-L${CMAKE_BINARY_DIR}")
     pico_set_linker_script(${Target} ${BOOTLOADER_DIR_GLOBAL}/linker_common/app${CPU}.ld)
+    set_property(TARGET ${Target} APPEND PROPERTY LINK_DEPENDS "${CMAKE_BINARY_DIR}/linker_definitions.ld")
 
     if (PFB_WITH_SHA256_HASHING OR PFB_WITH_IMAGE_ENCRYPTION)
         find_package(Python COMPONENTS Interpreter REQUIRED)
@@ -190,6 +191,7 @@ target_compile_options(pico_fota_bootloader PRIVATE
                        -Wnull-dereference)
 
 pico_set_linker_script(pico_fota_bootloader ${CMAKE_CURRENT_SOURCE_DIR}/linker_common/boot${CPU}.ld)
+set_property(TARGET pico_fota_bootloader APPEND PROPERTY LINK_DEPENDS "${CMAKE_BINARY_DIR}/linker_definitions.ld")
 pico_add_extra_outputs(pico_fota_bootloader)
 
 ########################################
