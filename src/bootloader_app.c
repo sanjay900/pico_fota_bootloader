@@ -80,11 +80,39 @@ static void mark_has_no_new_firmware(void) {
     flash_utils_notify_pico_about_firmware(PFB_NO_NEW_FIRMWARE_MAGIC);
 }
 
+/**
+ * Returns the number of sectors in a slot up to and including the last one
+ * that isn't fully erased. Everything past that is 0xFF, so it doesn't need
+ * swapping.
+ */
+static uint32_t count_used_sectors(uint32_t slot_start) {
+    const uint32_t total_sectors =
+            PFB_ADDR_AS_U32(__FLASH_SWAP_SPACE_LENGTH) / FLASH_SECTOR_SIZE;
+
+    for (uint32_t i = total_sectors; i > 0; i--) {
+        const uint32_t *sector =
+                (const uint32_t *) (slot_start + (i - 1) * FLASH_SECTOR_SIZE);
+        for (uint32_t j = 0; j < FLASH_SECTOR_SIZE / sizeof(uint32_t); j++) {
+            if (sector[j] != 0xFFFFFFFF) {
+                return i;
+            }
+        }
+    }
+    return 0;
+}
+
 static void swap_images(void) {
     uint8_t swap_buff_from_downlaod_slot[FLASH_SECTOR_SIZE];
     uint8_t swap_buff_from_application_slot[FLASH_SECTOR_SIZE];
-    const uint32_t SWAP_ITERATIONS =
-            PFB_ADDR_AS_U32(__FLASH_SWAP_SPACE_LENGTH) / FLASH_SECTOR_SIZE;
+    // Only swap the sectors either image actually uses, the rest of both
+    // slots is erased so swapping it would just burn time on flash erases
+    const uint32_t download_sectors =
+            count_used_sectors(PFB_ADDR_AS_U32(__FLASH_DOWNLOAD_SLOT_START));
+    const uint32_t application_sectors =
+            count_used_sectors(PFB_ADDR_AS_U32(__FLASH_APP_START));
+    const uint32_t SWAP_ITERATIONS = download_sectors > application_sectors
+                                             ? download_sectors
+                                             : application_sectors;
 
     uint32_t saved_interrupts = save_and_disable_interrupts();
     for (uint32_t i = 0; i < SWAP_ITERATIONS; i++) {
