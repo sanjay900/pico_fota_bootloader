@@ -32,7 +32,9 @@ extern "C" {
 
 /**
  * Marks the download slot as valid, i.e. download slot contains proper binary
- * content and the partitions can be swapped. MUST be called before the next
+ * content and the partitions can be swapped. Anything left in the slot past the
+ * end of what was written is erased first, as the bootloader only swaps as far
+ * as the last sector in use. MUST be called before the next
  * reboot, otherwise data from the download slot will be lost.
  */
 void pfb_mark_download_slot_as_valid(void);
@@ -65,6 +67,9 @@ bool pfb_is_after_firmware_update(void);
  * @param len_bytes    Number of bytes that should be written into flash. MUST
  *                     be a multiple of 256.
  *
+ * Every sector whose start falls inside the written range is erased first, so
+ * the image MUST be written in order, from offset 0.
+ *
  * @return 1 when @p len_bytes or @p offset_bytes are not multiple of 256 or
  *         when ( @p offset_bytes + @p len_bytes ) exceeds download slot size,
  *         negative mbedtls error code in case of an error if
@@ -76,8 +81,9 @@ int pfb_write_to_flash_aligned_256_bytes(uint8_t *src,
                                          size_t len_bytes);
 
 /**
- * Initializes the download slot, i.e. erases the download partition. MUST be
- * called before writing data into the flash. Before an erase, the function will
+ * Initializes the download slot. MUST be called before writing data into the
+ * flash. Nothing is erased here: each sector is erased when a write first
+ * reaches it, see @ref pfb_write_to_flash_aligned_256_bytes. The function will
  * call @ref pfb_firmware_commit even if @ref pfb_firmware_commit has been
  * called before.
  *

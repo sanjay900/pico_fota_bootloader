@@ -66,7 +66,42 @@ static int decrypt_256_bytes(const uint8_t *src, uint8_t *out_dest) {
 }
 #endif // PFB_WITH_IMAGE_ENCRYPTION
 
+// End of what has been written to the download slot since it was initialized
+static size_t m_download_written_end;
+
+static bool is_download_sector_erased(uint32_t sector_offset) {
+    const uint32_t *sector =
+            (const uint32_t *) (PFB_ADDR_AS_U32(__FLASH_DOWNLOAD_SLOT_START)
+                                + sector_offset);
+    for (size_t i = 0; i < FLASH_SECTOR_SIZE / sizeof(uint32_t); i++) {
+        if (sector[i] != 0xFFFFFFFF) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void erase_download_sector(uint32_t sector_offset) {
+    uint32_t saved_interrupts = save_and_disable_interrupts();
+    flash_range_erase(
+            PFB_ADDR_WITH_XIP_OFFSET_AS_U32(__FLASH_DOWNLOAD_SLOT_START)
+                    + sector_offset,
+            FLASH_SECTOR_SIZE);
+    restore_interrupts(saved_interrupts);
+}
+
 void pfb_mark_download_slot_as_valid(void) {
+    // The bootloader only swaps as far as the last sector in use in either slot, so clear out
+    // anything an older image left past the end of this one
+    uint32_t slot_size = PFB_ADDR_AS_U32(__FLASH_SWAP_SPACE_LENGTH);
+    for (uint32_t sector_offset =
+                 (m_download_written_end + FLASH_SECTOR_SIZE - 1)
+                 / FLASH_SECTOR_SIZE * FLASH_SECTOR_SIZE;
+         sector_offset < slot_size; sector_offset += FLASH_SECTOR_SIZE) {
+        if (!is_download_sector_erased(sector_offset)) {
+            erase_download_sector(sector_offset);
+        }
+    }
     flash_utils_mark_download_slot(PFB_SHOULD_SWAP_MAGIC);
 }
 
@@ -85,6 +120,19 @@ int pfb_write_to_flash_aligned_256_bytes(uint8_t *src,
         || offset_bytes + len_bytes
                    > (size_t) PFB_ADDR_AS_U32(__FLASH_SWAP_SPACE_LENGTH)) {
         return 1;
+    }
+
+    // Erase each sector as the write reaches its start, rather than the whole slot up front, which
+    // keeps interrupts off long enough to drop a bluetooth connection. Writes come in order, so every
+    // sector is erased once before anything is written to it
+    for (uint32_t sector_offset = (offset_bytes + FLASH_SECTOR_SIZE - 1)
+                                  / FLASH_SECTOR_SIZE * FLASH_SECTOR_SIZE;
+         sector_offset < offset_bytes + len_bytes;
+         sector_offset += FLASH_SECTOR_SIZE) {
+        erase_download_sector(sector_offset);
+    }
+    if (offset_bytes + len_bytes > m_download_written_end) {
+        m_download_written_end = offset_bytes + len_bytes;
     }
 
     for (size_t i = 0; i < len_bytes / PFB_ALIGN_SIZE; i++) {
@@ -112,16 +160,10 @@ int pfb_write_to_flash_aligned_256_bytes(uint8_t *src,
 }
 
 int pfb_initialize_download_slot(void) {
-    uint32_t erase_len = PFB_ADDR_AS_U32(__FLASH_SWAP_SPACE_LENGTH);
-    uint32_t erase_address_with_xip_offset =
-            PFB_ADDR_WITH_XIP_OFFSET_AS_U32(__FLASH_DOWNLOAD_SLOT_START);
-    assert(erase_len % FLASH_SECTOR_SIZE == 0);
-
     pfb_firmware_commit();
 
-    uint32_t saved_interrupts = save_and_disable_interrupts();
-    flash_range_erase(erase_address_with_xip_offset, erase_len);
-    restore_interrupts(saved_interrupts);
+    // sectors are erased as they are written, see pfb_write_to_flash_aligned_256_bytes
+    m_download_written_end = 0;
 
 #ifdef PFB_WITH_IMAGE_ENCRYPTION
     mbedtls_aes_free(&m_aes_ctx);
