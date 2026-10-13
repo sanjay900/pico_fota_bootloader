@@ -231,7 +231,10 @@ SECTIONS
     __StackOneTop = ORIGIN(SCRATCH_X) + LENGTH(SCRATCH_X);
     __StackTop = ORIGIN(SCRATCH_Y) + LENGTH(SCRATCH_Y);
     __StackOneBottom = __StackOneTop - SIZEOF(.stack1_dummy);
-    __StackBottom = __StackTop - SIZEOF(.stack_dummy);
+    /* When nothing is in SCRATCH_X (core 1's stack was put elsewhere), core 0's stack can grow into
+       it, so its bottom (where the stack guard goes) is the start of SCRATCH_X */
+    __StackBottom = (SIZEOF(.stack1_dummy) == 0 && SIZEOF(.scratch_x) == 0)
+        ? ORIGIN(SCRATCH_X) : __StackTop - SIZEOF(.stack_dummy);
     PROVIDE(__stack = __StackTop);
 
     /* picolibc and LLVM */
