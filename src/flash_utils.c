@@ -39,12 +39,38 @@ overwrite_4_bytes_in_flash_isr_unsafe(uint32_t dest_addr_with_xip_offset,
 }
 
 static void overwrite_4_bytes_in_flash(uint32_t dest_addr, uint32_t data) {
+    // Every boot sets these flags, almost always to what they already are. Rewriting means erasing the
+    // whole info sector first, and a reset or power loss before it's programmed again leaves it blank,
+    // which the bootloader can't boot from. So only touch flash for a real change
+    if (*(volatile uint32_t *) dest_addr == data) {
+        return;
+    }
     uint8_t *buffer = (uint8_t *)malloc(FLASH_SECTOR_SIZE);
     if (!buffer) {
         return;
     }
     uint32_t saved_interrupts = save_and_disable_interrupts();
     overwrite_4_bytes_in_flash_isr_unsafe(dest_addr - XIP_BASE, data, buffer);
+    restore_interrupts(saved_interrupts);
+    free(buffer);
+}
+
+void flash_utils_repair_flash_info_if_erased(void) {
+    volatile uint32_t *info = (volatile uint32_t *) PFB_ADDR_AS_U32(__FLASH_INFO_START);
+    if (info[0] != 0xFFFFFFFF) {
+        return;
+    }
+    uint8_t *buffer = (uint8_t *) calloc(1, FLASH_SECTOR_SIZE);
+    if (!buffer) {
+        return;
+    }
+    // Same as the bootloader image ships with: the app and download slots, and every flag clear
+    uint32_t *words = (uint32_t *) buffer;
+    words[0] = PFB_ADDR_AS_U32(__FLASH_APP_START);
+    words[1] = PFB_ADDR_AS_U32(__FLASH_DOWNLOAD_SLOT_START);
+    uint32_t saved_interrupts = save_and_disable_interrupts();
+    erase_flash_info_partition_isr_unsafe();
+    flash_range_program(PFB_ADDR_WITH_XIP_OFFSET_AS_U32(__FLASH_INFO_START), buffer, FLASH_SECTOR_SIZE);
     restore_interrupts(saved_interrupts);
     free(buffer);
 }

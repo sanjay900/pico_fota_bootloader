@@ -196,6 +196,7 @@ int main(void) {
 
     print_welcome_message();
 
+    flash_utils_repair_flash_info_if_erased();
     if (should_rollback()) {
         BOOTLOADER_LOG("Rolling back to the previous firmware...");
         swap_images();
