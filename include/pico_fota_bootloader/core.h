@@ -117,6 +117,18 @@ void pfb_firmware_commit(void);
 bool pfb_is_after_rollback(void);
 
 /**
+ * Checks that the bootloader was built with the same flash layout as this
+ * application. The bootloader records where it expects the application and the
+ * download slot when it is flashed, and those move whenever the layout changes
+ * (eg PFB_RESERVED_FILESYSTEM_SIZE_KB). An update written with a different
+ * layout would be swapped in from the wrong place, so it has to go through a
+ * UF2 that carries the matching bootloader instead.
+ *
+ * @return true if the bootloader's layout matches this application's.
+ */
+bool pfb_bootloader_layout_matches(void);
+
+/**
  * If @ref WITH_SHA256 is defined, checks if the calculated SHA256 of the image
  * matches the expected one. Otherwise, the function will only return 0.
  *
