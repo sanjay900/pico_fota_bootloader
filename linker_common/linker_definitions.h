@@ -30,7 +30,8 @@ extern "C" {
 
 extern uint32_t __flash_info_app_vtor;
 extern uint32_t __FLASH_START;
-extern uint32_t __FLASH_INFO_START;
+// An array so the compiler doesn't bound accesses to one word, this is the start of a whole sector
+extern uint32_t __FLASH_INFO_START[];
 extern uint32_t __FLASH_INFO_APP_HEADER;
 extern uint32_t __FLASH_INFO_DOWNLOAD_HEADER;
 extern uint32_t __FLASH_INFO_IS_DOWNLOAD_SLOT_VALID;
