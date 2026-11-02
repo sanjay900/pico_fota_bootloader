@@ -75,9 +75,9 @@ __FLASH_SWAP_SPACE_LENGTH = (__FLASH_SIZE - __BOOTLOADER_LENGTH - __FLASH_INFO_L
 
 /*
 GNU ld AT> FLASH already accounts for .data load memory address in FLASH.
-The full swap space is available for the application slot.
+Reserve the SHA256 trailer appended to OTA images without moving either slot.
 */
-__FLASH_SLOT_LENGTH = __FLASH_SWAP_SPACE_LENGTH;
+__FLASH_SLOT_LENGTH = __FLASH_SWAP_SPACE_LENGTH - @PFB_IMAGE_TRAILER_SIZE@;
 __FLASH_DOWNLOAD_SLOT_START = __FLASH_APP_START + __FLASH_SWAP_SPACE_LENGTH;
 
 ASSERT(__FLASH_SWAP_SPACE_LENGTH == (__FLASH_SIZE - __BOOTLOADER_LENGTH - __FLASH_INFO_LENGTH - __STATIC_FIRMWARE_LENGTH) / 2,

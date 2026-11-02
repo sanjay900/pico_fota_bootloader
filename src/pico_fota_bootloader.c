@@ -212,7 +212,8 @@ bool pfb_is_after_rollback(void) {
 
 int pfb_firmware_sha256_check(size_t firmware_size) {
 #ifdef PFB_WITH_SHA256_HASHING
-    if (firmware_size % PFB_ALIGN_SIZE || firmware_size < PFB_ALIGN_SIZE) {
+    if (firmware_size % PFB_ALIGN_SIZE || firmware_size <= PFB_ALIGN_SIZE
+        || firmware_size > PFB_ADDR_AS_U32(__FLASH_SWAP_SPACE_LENGTH)) {
         return 1;
     }
 
@@ -222,6 +223,7 @@ int pfb_firmware_sha256_check(size_t firmware_size) {
     int ret;
     ret = mbedtls_sha256_starts_ret(&sha256_ctx, 0);
     if (ret) {
+        mbedtls_sha256_free(&sha256_ctx);
         return ret;
     }
 
@@ -231,12 +233,14 @@ int pfb_firmware_sha256_check(size_t firmware_size) {
                                     (const unsigned char *) image_start_address,
                                     image_size_without_sha256);
     if (ret) {
+        mbedtls_sha256_free(&sha256_ctx);
         return ret;
     }
 
     unsigned char calculated_sha256[PFB_SHA256_DIGEST_SIZE];
     ret = mbedtls_sha256_finish_ret(&sha256_ctx, calculated_sha256);
     if (ret) {
+        mbedtls_sha256_free(&sha256_ctx);
         return ret;
     }
 

@@ -58,6 +58,10 @@ endif()
 # Build linker definitions
 ########################################
 # PICO_FLASH_SIZE_BYTES
+set(PFB_IMAGE_TRAILER_SIZE 0)
+if (PFB_WITH_SHA256_HASHING)
+    set(PFB_IMAGE_TRAILER_SIZE 256)
+endif ()
 configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/linker_common/linker_definitions.in
     ${CMAKE_BINARY_DIR}/linker_definitions.ld
