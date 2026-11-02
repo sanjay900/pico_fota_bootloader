@@ -118,7 +118,7 @@ if (PFB_WITH_IMAGE_ENCRYPTION)
     target_compile_definitions(pico_fota_bootloader_lib PRIVATE PFB_AES_KEY=\"${PFB_AES_KEY}\")
 endif ()
 if (PFB_WITH_SHA256_HASHING)
-    target_compile_definitions(pico_fota_bootloader_lib PRIVATE PFB_WITH_SHA256_HASHING)
+    target_compile_definitions(pico_fota_bootloader_lib PUBLIC PFB_WITH_SHA256_HASHING)
 endif ()
 
 set(BOOTLOADER_DIR_GLOBAL ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
