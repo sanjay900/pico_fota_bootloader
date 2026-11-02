@@ -74,11 +74,10 @@ __FLASH_APP_START = __STATIC_FIRMWARE_START + __STATIC_FIRMWARE_LENGTH;
 __FLASH_SWAP_SPACE_LENGTH = (__FLASH_SIZE - __BOOTLOADER_LENGTH - __FLASH_INFO_LENGTH - __STATIC_FIRMWARE_LENGTH) / 2;
 
 /*
-(max binary size) == (.text .rodata .big_const .binary_info) + (possible .data)
-so
-(.text .rodata .big_const .binary_info) == (max binary size) - (possible .data)
+GNU ld AT> FLASH already accounts for .data load memory address in FLASH.
+The full swap space is available for the application slot.
 */
-__FLASH_SLOT_LENGTH = __FLASH_SWAP_SPACE_LENGTH - 64k;
+__FLASH_SLOT_LENGTH = __FLASH_SWAP_SPACE_LENGTH;
 __FLASH_DOWNLOAD_SLOT_START = __FLASH_APP_START + __FLASH_SWAP_SPACE_LENGTH;
 
 ASSERT(__FLASH_SWAP_SPACE_LENGTH == (__FLASH_SIZE - __BOOTLOADER_LENGTH - __FLASH_INFO_LENGTH - __STATIC_FIRMWARE_LENGTH) / 2,
